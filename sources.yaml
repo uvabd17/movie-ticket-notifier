@@ -1,0 +1,33 @@
+# Twitter/X handles to watch, in rough priority order.
+# Keep the list small (~15) so we stay inside free-tier quota.
+
+sources:
+  # PCX-first (Prasads IMAX, Hyderabad)
+  - handle: PrasadsLargeIM
+    note: "Prasads IMAX official - top priority"
+  - handle: amb_cinemas
+    note: "AMB Cinemas Hyderabad"
+  - handle: AsianCinemasHyd
+    note: "Asian Cinemas Hyderabad"
+
+  # National chains (announce pan-India drops incl. Hyderabad)
+  - handle: PVRCinemas_
+    note: "PVR"
+  - handle: INOXMovies
+    note: "INOX"
+
+  # Studios / distributors for Hollywood
+  - handle: MarvelIndia
+  - handle: WarnerBrosIn
+  - handle: UniversalInd
+  - handle: DisneyPlusHS
+    note: "Disney India (sometimes announces theatrical)"
+
+  # Platforms (they occasionally tweet drop announcements)
+  - handle: bookmyshow
+  - handle: districtbyZomato
+    note: "District (Zomato-owned)"
+
+  # Box-office trackers - pan-India, catch Hollywood tentpoles well
+  - handle: sacnilkcom
+  - handle: boxofficehq

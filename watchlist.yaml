@@ -1,0 +1,26 @@
+# Movies to watch. Add one entry per movie you care about.
+#
+# Fields:
+#   name:     canonical name (used in alerts)
+#   aliases:  alternate spellings / short forms the tweet might use
+#   hashtags: hashtags (without the #) that identify the movie
+#   priority: "high" fires the full reminder cascade; "normal" fires T-1h and T-5min only
+#
+# Delete entries once the booking is done.
+
+movies:
+  - name: "Avengers: Doomsday"
+    aliases:
+      - "Avengers Doomsday"
+      - "Doomsday"
+      - "Avengers 5"
+    hashtags:
+      - "AvengersDoomsday"
+      - "Doomsday"
+    priority: high
+
+  # Example of a future movie (uncomment when relevant):
+  # - name: "Avatar: Fire and Ash"
+  #   aliases: ["Avatar 3", "Fire and Ash"]
+  #   hashtags: ["AvatarFireAndAsh", "Avatar3"]
+  #   priority: high
