@@ -1,5 +1,7 @@
-# Twitter/X handles to watch, in rough priority order.
-# Keep the list small (~15) so we stay inside free-tier quota.
+# Optional Twitter/X handles. Only used if TWITTER_BEARER_TOKEN is set.
+# Twitter Free tier has essentially no quota for timeline reads (~100/mo),
+# so by default this system runs on Google News RSS only (configured via
+# watchlist.yaml). Uncomment and set the secret only if you have Basic tier.
 
 sources:
   # PCX-first (Prasads IMAX, Hyderabad)

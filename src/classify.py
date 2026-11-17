@@ -177,30 +177,54 @@ def extract_datetime(text: str, reference: datetime) -> datetime | None:
 
 # --- main --------------------------------------------------------------
 
-def classify(tweet_text: str, tweet_time: datetime, watchlist: list[dict]) -> Classification:
-    if NEGATIVE_RE.search(tweet_text):
+def classify(
+    text: str,
+    reference_time: datetime,
+    watchlist: list[dict],
+    *,
+    source_type: str = "tweet",
+) -> Classification:
+    """Classify a tweet or news-article (title + description).
+
+    source_type:
+      "tweet" — strict: IMMEDIATE requires a BMS/District URL in the text.
+      "news"  — relaxed: news articles describe present reality, so
+                scheduled-phrasing without a parseable future date becomes
+                IMMEDIATE (the article itself IS the "it's live now" signal).
+    """
+    if NEGATIVE_RE.search(text):
         return Classification("IGNORE", reason="negative phrase")
 
-    movie = match_movie(tweet_text, watchlist)
+    movie = match_movie(text, watchlist)
     if not movie:
         return Classification("IGNORE", reason="no movie match")
 
-    sched_hit = SCHEDULED_RE.search(tweet_text)
-    imm_hit = IMMEDIATE_RE.search(tweet_text)
+    sched_hit = SCHEDULED_RE.search(text)
+    imm_hit = IMMEDIATE_RE.search(text)
 
     if sched_hit:
-        when = extract_datetime(tweet_text, tweet_time)
-        if when is None:
-            return Classification(
-                "IGNORE",
-                movie=movie,
-                reason="scheduled phrasing but no parseable absolute date (Phase 2 LLM territory)",
-            )
-        return Classification("SCHEDULED", movie=movie, booking_open_at=when, reason="scheduled hit with date")
+        when = extract_datetime(text, reference_time)
+        if when is not None:
+            # Treat "future date" as SCHEDULED only if it's genuinely in the
+            # future (>1h ahead of article/tweet time). Otherwise this is a
+            # present-tense report.
+            ref = reference_time.astimezone(IST)
+            if when > ref + timedelta(hours=1):
+                return Classification("SCHEDULED", movie=movie, booking_open_at=when, reason="scheduled hit with future date")
+            if source_type == "news":
+                return Classification("IMMEDIATE", movie=movie, reason="scheduled phrasing with current/past date in news article")
+        # No parseable date
+        if source_type == "news":
+            return Classification("IMMEDIATE", movie=movie, reason="scheduled phrasing in news article (treating as present-tense)")
+        return Classification(
+            "IGNORE",
+            movie=movie,
+            reason="scheduled phrasing but no parseable absolute date (Phase 2 LLM territory)",
+        )
 
     if imm_hit:
-        if not BOOKING_URL_RE.search(tweet_text):
+        if source_type == "tweet" and not BOOKING_URL_RE.search(text):
             return Classification("IGNORE", movie=movie, reason="immediate phrasing but no booking URL")
-        return Classification("IMMEDIATE", movie=movie, reason="immediate hit with URL")
+        return Classification("IMMEDIATE", movie=movie, reason=f"immediate hit ({source_type})")
 
     return Classification("IGNORE", movie=movie, reason="no booking phrasing")

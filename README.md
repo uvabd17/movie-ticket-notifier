@@ -1,14 +1,24 @@
 # movie-ticket-notifier
 
-Catches pre-announcement tweets for big-movie ticket drops in Hyderabad (PCX / Prasads IMAX focus) and fires a loud phone alarm 5 minutes before the booking window opens, so you're on BookMyShow / District refreshing at the exact moment seats go live.
+Catches booking-open signals for big-movie ticket drops in Hyderabad (PCX / Prasads focus) and fires a loud phone alarm so you're on BookMyShow / District refreshing at the moment seats go live.
 
-No scraping. Reads public Twitter/X posts only.
+No scraping. Reads **Google News RSS** (primary) and optionally Twitter/X (if you have paid Basic-tier access).
 
 ## How it works
 
-Studios, theater chains, and box-office trackers tweet "Advance bookings for <movie> open on <date> at <time>" 1–3 days before a tentpole release. This system watches those handles, parses the date out of the tweet, and schedules a reminder cascade ending in a **loud Do-Not-Disturb-piercing alarm 5 minutes before** the booking opens.
+News sites (Sacnilk, Pinkvilla, Moneycontrol, Indian Express, Siasat, etc.) publish articles within minutes of a theater or distributor announcement. This system polls **Google News RSS** every 5 minutes for per-movie queries you configure, classifies each new article as:
 
-You manually book. The system's job is to get you on the page in time.
+- **SCHEDULED** — article mentions a future booking date/time → full reminder cascade (T−24h, T−1h, T−5min, T+0, T+2min).
+- **IMMEDIATE** — article reports bookings are already live → loud alarm now (deduped: once per movie per day).
+- **IGNORE** — reviews, retrospectives, "will open soon", etc.
+
+The **loud alarm** uses ntfy.sh with max priority + "Override DND" so it rings through silent mode. Telegram is a routine backup.
+
+You still manually book. The system's job is to get you on the page in time.
+
+## Why Google News RSS and not Twitter directly
+
+Twitter/X Free tier allows ~100 user-timeline reads per month across all handles — unusable for a 5-min cron across 10+ sources. Paid Basic tier is ~$100/month. Google News indexes the same signal (plus press releases + news articles) without an API key, without rate limits that matter, and without ToS issues. Twitter is retained as an optional secondary — if you set `TWITTER_BEARER_TOKEN`, the system will also poll `sources.yaml` handles.
 
 ## Setup
 
@@ -23,26 +33,24 @@ This system's weakest spot is a theater that tweets *at* or *after* the booking 
 
 ### Step 1 — get the system running
 
-1. **Fork this repo on GitHub.** Public, free tier is fine. (Keep it public — public repos get unlimited Actions minutes.)
+1. **Fork this repo on GitHub.** Keep it public — public repos get unlimited Actions minutes.
 
-2. **Create a Twitter/X developer app** at https://developer.twitter.com, get a Bearer Token.
-
-3. **Create a Telegram bot** by messaging [@BotFather](https://t.me/BotFather) on Telegram:
+2. **Create a Telegram bot** by messaging [@BotFather](https://t.me/BotFather) on Telegram:
    - `/newbot`, follow prompts, copy the token.
    - Message your new bot anything (so it has a chat with you).
    - Visit `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy your `chat.id`.
 
-4. **Pick an ntfy topic name.** Anything hard to guess, e.g. `hyd-tix-7f3a9k`. Install the [ntfy Android app](https://play.google.com/store/apps/details?id=io.heckel.ntfy), subscribe to that exact topic, and in the app's per-topic settings turn on **"Override Do Not Disturb"** and pick an alarm-style sound. Confirm by running `curl -d test ntfy.sh/<topic>` from any machine — your phone should ring.
+3. **Pick an ntfy topic name.** Anything hard to guess, e.g. `hyd-pcx-7f3a9k`. Install the [ntfy Android app](https://play.google.com/store/apps/details?id=io.heckel.ntfy), subscribe to that exact topic, and in the app's per-topic settings turn on **"Override Do Not Disturb"** and pick an alarm-style sound. Confirm by running `curl -d test ntfy.sh/<topic>` from any machine — your phone should ring.
 
-5. **In your forked GitHub repo → Settings → Secrets and variables → Actions**, add:
-   - `TWITTER_BEARER_TOKEN`
+4. **In your repo → Settings → Secrets and variables → Actions**, add:
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
    - `NTFY_TOPIC` (just the topic name, no URL)
+   - `TWITTER_BEARER_TOKEN` *(optional — only if you have Twitter Basic tier)*
 
-6. **Edit `watchlist.yaml`** to list the movies you're tracking. Avengers: Doomsday is seeded as an example — leave or replace.
+5. **Edit `watchlist.yaml`** to list movies you're tracking. Avengers: Doomsday is seeded as an example.
 
-7. **Enable Actions** on your forked repo (first time GitHub asks). The `watch` workflow runs every 5 minutes.
+6. **Enable Actions** on your repo (first time GitHub asks). The `watch` workflow runs every 5 minutes.
 
 ### Test it right now
 
