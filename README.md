@@ -42,15 +42,22 @@ This system's weakest spot is a theater that tweets *at* or *after* the booking 
 
 3. **Pick an ntfy topic name.** Anything hard to guess, e.g. `hyd-pcx-7f3a9k`. Install the [ntfy Android app](https://play.google.com/store/apps/details?id=io.heckel.ntfy), subscribe to that exact topic, and in the app's per-topic settings turn on **"Override Do Not Disturb"** and pick an alarm-style sound. Confirm by running `curl -d test ntfy.sh/<topic>` from any machine — your phone should ring.
 
-4. **In your repo → Settings → Secrets and variables → Actions**, add:
+4. *(Optional, highly recommended for PCX)* **Get an xpoz.ai API key** for Instagram polling of `@prasadsmultiplx`. Prasads posts about every major release on Instagram (Ramayana, DNK, Suriya, Thaman — all in the last week) and will post when PCX opens Doomsday bookings. Google News doesn't index Instagram, so xpoz is the only way to catch this signal in the cron.
+   - Sign in at **https://xpoz.ai** (free tier includes ~500 credits + some bonus).
+   - Dashboard → Access Keys → create a key.
+   - Save that string — it's your **`XPOZ_API_KEY`**.
+   - At ~1 credit per poll and a 30-min poll interval, free credits last ~5–10 days. Plenty for a specific movie's drop window. **In parallel, also enable Instagram post-notifications in the Instagram app** (`@prasadsmultiplx` → Following → Notifications → Posts ON) — that's free and instant.
+
+5. **In your repo → Settings → Secrets and variables → Actions**, add:
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
    - `NTFY_TOPIC` (just the topic name, no URL)
+   - `XPOZ_API_KEY` *(optional — only if using Instagram source)*
    - `TWITTER_BEARER_TOKEN` *(optional — only if you have Twitter Basic tier)*
 
-5. **Edit `watchlist.yaml`** to list movies you're tracking. Avengers: Doomsday is seeded as an example.
+6. **Edit `watchlist.yaml`** to list movies you're tracking. Avengers: Doomsday is seeded as an example, with `@prasadsmultiplx` already set as the Instagram handle to poll.
 
-6. **Enable Actions** on your repo (first time GitHub asks). The `watch` workflow runs every 5 minutes.
+7. **Enable Actions** on your repo (first time GitHub asks). The `watch` workflow runs every 5 minutes (news) and polls Instagram every 30 minutes within that same tick.
 
 ### Test it right now
 

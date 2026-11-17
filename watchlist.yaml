@@ -31,6 +31,12 @@ movies:
       # Hyderabad-specific — catches multiplex-city coverage (TOI Hyderabad,
       # Siasat, Telangana Today) that sometimes name-checks Prasads.
       - '"Avengers Doomsday" Hyderabad ("advance booking" OR "bookings open" OR "Prasads")'
+    # Instagram accounts to poll (only if XPOZ_API_KEY set). Polled every 30 min
+    # to conserve xpoz credits. Prasads posts about every major release
+    # (verified: Ramayana, DNK, Suriya's Scene, Thaman — all in last week),
+    # so they will almost certainly post when PCX opens Doomsday bookings.
+    instagram_handles:
+      - prasadsmultiplx
 
   # Example (uncomment when relevant):
   # - name: "Avatar: Fire and Ash"

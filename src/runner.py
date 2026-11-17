@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from . import classify as clf
+from . import instagram as insta
 from . import newsrss
 from . import schedule as sched
 from .notify import send_alarm, send_info
@@ -25,6 +26,11 @@ SOURCES_PATH = ROOT / "sources.yaml"
 
 # Bound per-query guid history to avoid state.json growing unbounded.
 MAX_GUIDS_PER_QUERY = 500
+
+# Instagram poll interval (seconds). Prasads-type accounts don't post at
+# flip-second precision; 30 min is enough to catch the signal within an
+# acceptable window while leaving xpoz credits.
+INSTAGRAM_POLL_INTERVAL_S = 30 * 60
 
 
 def _log(msg: str) -> None:
@@ -170,6 +176,55 @@ def _run_news(state: dict, movies: list[dict], schedule: sched.Schedule, now: da
             state[key] = trimmed
 
 
+# --- instagram source (optional, credit-gated) -------------------------
+
+def _run_instagram(state: dict, movies: list[dict], schedule: sched.Schedule, now: datetime) -> None:
+    if not insta.available():
+        _log("instagram disabled: xpoz SDK not installed or XPOZ_API_KEY not set")
+        return
+
+    now_ts = int(now.timestamp())
+    for movie in movies:
+        handles = movie.get("instagram_handles") or []
+        for handle in handles:
+            key = f"instagram:{handle}"
+            meta = state.get(key) or {}
+            last_check_ts = int(meta.get("last_check_ts", 0))
+            if now_ts - last_check_ts < INSTAGRAM_POLL_INTERVAL_S:
+                _log(f"instagram @{handle}: skip (last checked {now_ts - last_check_ts}s ago, interval {INSTAGRAM_POLL_INTERVAL_S}s)")
+                continue
+            seen_ids = set(meta.get("seen_ids") or [])
+            try:
+                posts = insta.fetch_posts(handle, limit=10)
+            except Exception as e:
+                _log(f"instagram @{handle}: fetch failed: {e}")
+                # still update last_check so we don't hammer on a persistent error
+                state[key] = {"last_check_ts": now_ts, "seen_ids": list(seen_ids)[-MAX_GUIDS_PER_QUERY:]}
+                continue
+
+            new_posts = [p for p in posts if p.id not in seen_ids]
+            if new_posts:
+                _log(f"instagram @{handle}: {len(new_posts)} new post(s)")
+            for p in new_posts:
+                cls = clf.classify(p.caption, p.created_at, movies, source_type="news")
+                if cls.verdict == "IGNORE":
+                    continue
+                movie_entry = next((m for m in movies if m["name"] == cls.movie), None)
+                if not movie_entry:
+                    continue
+                label = f"instagram:@{handle}"
+                if cls.verdict == "SCHEDULED":
+                    _handle_scheduled(cls, label, p.url, movie_entry, schedule)
+                else:
+                    _handle_immediate(cls, label, p.caption, p.url, schedule, now)
+
+            seen_ids.update(p.id for p in posts)
+            trimmed = list(seen_ids)
+            if len(trimmed) > MAX_GUIDS_PER_QUERY:
+                trimmed = trimmed[-MAX_GUIDS_PER_QUERY:]
+            state[key] = {"last_check_ts": now_ts, "seen_ids": trimmed}
+
+
 # --- twitter source (optional) -----------------------------------------
 
 def _run_twitter(state: dict, movies: list[dict], sources: list[dict], schedule: sched.Schedule, now: datetime) -> None:
@@ -226,6 +281,7 @@ def run_once() -> int:
     schedule = sched.load(SCHEDULE_PATH)
 
     _run_news(state, movies, schedule, now)
+    _run_instagram(state, movies, schedule, now)
     _run_twitter(state, movies, sources, schedule, now)
     _fire_due_reminders(schedule, now)
 
